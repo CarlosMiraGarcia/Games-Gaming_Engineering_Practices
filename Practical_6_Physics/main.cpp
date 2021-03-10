@@ -6,8 +6,13 @@ using namespace sf;
 using namespace std;
 
 b2World* world;
-std::vector<b2Body*> bodies;
-std::vector<RectangleShape*> sprites;
+std::vector<b2Body*> bodiesBox;
+std::vector<b2Body*> bodiesWall;
+std::vector<RectangleShape*> spritesBox;
+std::vector<RectangleShape*> spritesWall;
+sf::Clock colourClock;
+sf::Clock sizeClock;
+
 float gameWidth = 800.f;
 float gameHeight = 600.f;
 
@@ -85,14 +90,14 @@ void init() {
 		// Create SFML shapes for each wall
 		auto s = new RectangleShape();
 		s->setPosition(walls[i]);
-		s->setSize(walls[i+1]);
-		s->setOrigin(walls[i+1]*.5f);
+		s->setSize(walls[i + 1]);
+		s->setOrigin(walls[i + 1] * .5f);
 		s->setFillColor(Color::White);
-		sprites.push_back(s);
+		spritesWall.push_back(s);
 
 		// Create a static physics body for the wall
 		auto b = CreatePhysicsBox(*world, false, *s);
-		bodies.push_back(b);
+		bodiesWall.push_back(b);
 	}
 
 	// Create Boxes
@@ -103,33 +108,64 @@ void init() {
 		s->setSize(Vector2f(50.0f, 50.0f));
 		s->setOrigin(Vector2f(25.0f, 25.0f));
 		s->setFillColor(Color::White);
-		sprites.push_back(s);
+		spritesBox.push_back(s);
 
 		// Create a dynamic physics body for the box
 		auto b = CreatePhysicsBox(*world, true, *s);
 		// Give the box a spin
 		b->ApplyAngularImpulse(5.0f, true);
-		bodies.push_back(b);
+		bodiesBox.push_back(b);
+
 	}
 }
 
 void Update() {
 	static sf::Clock clock;
 	float dt = clock.restart().asSeconds();
+	//Check colour clock
+	sf::Time elapsed1 = colourClock.getElapsedTime();
+	sf::Time elapsed2 = sizeClock.getElapsedTime();
+	srand(time(NULL));
 	// Step Physics world by Dt (non-fixed timestep)
 	world->Step(dt, velocityIterations, positionIterations);
 
-	for (int i = 0; i < bodies.size(); ++i) {
+	for (int i = 0; i < bodiesBox.size(); ++i) {
 		// Sync Sprites to physics position
-		sprites[i]->setPosition(invert_height(bv2_to_sv2(bodies[i]->GetPosition())));
+		spritesBox[i]->setPosition(invert_height(bv2_to_sv2(bodiesBox[i]->GetPosition())));
 		// Sync Sprites to physics Rotation
-		sprites[i]->setRotation((180 / b2_pi) * bodies[i]->GetAngle());
+		spritesBox[i]->setRotation((180 / b2_pi) * bodiesBox[i]->GetAngle());
+		auto spriteColour = spritesBox[i]->getFillColor();
+
+
+		if (elapsed1.asSeconds() > 0.5) {
+			//Creating random numbers
+			int randNum1 = (rand() % 3) + 1;
+			int randNum2 = (rand() % 3) + 1;
+			int randNum3 = (rand() % 3) + 1;
+			int randNum4 = (rand() % 10) + 1;
+
+			//This randomizes the size
+			spritesBox[i]->setFillColor(sf::Color(spriteColour.r + dt * 100000 * randNum1, spriteColour.g + dt * 100000 * randNum2, spriteColour.b + dt * 100000 * randNum3));
+			//This randomizes the size
+			colourClock.restart();
+		}
+
+		//if (elapsed2.asSeconds() > 0.1) {
+		//	//Creating random numbers
+		//	static int randSize[] = { -1, 1 };
+		//	int randNum5 = randSize[rand() % 2];
+		//	spritesBox[i]->setScale(spritesBox[i]->getScale().x + 0.1 * randNum5, spritesBox[i]->getScale().y + 0.1 * randNum5);
+		//	sizeClock.restart();
+		//}
 	}
 }
 
 void Render() {
-	for (int i = 0; i < bodies.size(); ++i) {
-		Renderer::queue(sprites[i]);
+	for (int i = 0; i < bodiesBox.size(); ++i) {
+		Renderer::queue(spritesBox[i]);
+	}
+	for (int i = 0; i < bodiesWall.size(); ++i) {
+		Renderer::queue(spritesWall[i]);
 	}
 	Renderer::render();
 }
